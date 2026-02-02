@@ -31,7 +31,6 @@ export const getPopularManga = async (offset = 0, limit = 20) => {
 
     const mangaRaw = response.data.data || [];
 
-    // Ambil ID Chapter Terakhir
     const latestChapterIds = mangaRaw
       .map((m: any) => m.attributes.latestUploadedChapter)
       .filter((id: string) => id);
@@ -63,7 +62,6 @@ export const getPopularManga = async (offset = 0, limit = 20) => {
       return {
         id: manga.id,
         title: title,
-        // 👇 Ubah logika ini: Kalau tidak ada file, return null (biar bisa difilter)
         cover: coverFile ? getCoverUrl(manga.id, coverFile) : null,
         status: manga.attributes.status,
         lastChapter: lastCh,
@@ -71,7 +69,6 @@ export const getPopularManga = async (offset = 0, limit = 20) => {
       };
     });
 
-    // 👇 FILTER PENTING: Hanya kembalikan manga yang cover-nya TIDAK null
     return formattedManga.filter((m: any) => m.cover !== null);
   } catch (error) {
     console.error("Gagal ambil MangaDex:", error);
@@ -79,7 +76,7 @@ export const getPopularManga = async (offset = 0, limit = 20) => {
   }
 };
 
-// 2. Ambil Detail (UPDATE: Ambil Total Chapter dari MAL)
+// 2. Ambil Detail (DIPERBARUI: Tags Dinamis dengan ID)
 export const getMangaDetail = async (id: string) => {
   try {
     const response = await apiClient.get(`/manga/${id}`, {
@@ -100,25 +97,27 @@ export const getMangaDetail = async (id: string) => {
       manga.relationships.find((rel: any) => rel.type === "author")?.attributes
         ?.name || "Unknown";
 
+    // AMBIL TAGS SECARA DINAMIS (ID & NAME)
     const tags = manga.attributes.tags
       .filter(
         (tag: any) =>
           tag.attributes.group === "genre" || tag.attributes.group === "theme",
       )
-      .map((tag: any) => tag.attributes.name.en)
-      .slice(0, 5);
+      .map((tag: any) => ({
+        id: tag.id, // ID asli dari MangaDex (UUID)
+        name: tag.attributes.name.en,
+      }));
 
-    // --- INTEGRASI MYANIMELIST ---
     let malRating = "N/A";
     let malRank = "N/A";
     let malScoredBy = "0";
-    let malTotalChapters = "?"; // Default tanda tanya kalau tidak ketemu
+    let malTotalChapters = "?";
 
     const malId = manga.attributes.links?.mal;
 
     if (malId) {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Delay aman
+        await new Promise((resolve) => setTimeout(resolve, 500));
         const jikanRes = await axios.get(`${JIKAN_URL}/manga/${malId}`);
         const jikanData = jikanRes.data.data;
 
@@ -127,9 +126,6 @@ export const getMangaDetail = async (id: string) => {
         malScoredBy = jikanData.scored_by
           ? jikanData.scored_by.toLocaleString()
           : "0";
-
-        // 👇 AMBIL TOTAL CHAPTER RESMI DARI MAL
-        // Kalau ongoing, biasanya null. Kalau completed, pasti ada angkanya.
         malTotalChapters = jikanData.chapters
           ? jikanData.chapters.toString()
           : "?";
@@ -146,13 +142,12 @@ export const getMangaDetail = async (id: string) => {
       author: author,
       status: manga.attributes.status,
       year: manga.attributes.year || "N/A",
-      tags: tags,
+      tags: tags, // Mengembalikan [{id, name}, ...]
       cover: coverFile ? getCoverUrl(manga.id, coverFile) : "/placeholder.jpg",
-      // Data MAL
       rating: malRating,
       rank: malRank,
       votes: malScoredBy,
-      totalChapters: malTotalChapters, // Field baru
+      totalChapters: malTotalChapters,
     };
   } catch (error) {
     console.error("Error detail:", error);
@@ -160,14 +155,14 @@ export const getMangaDetail = async (id: string) => {
   }
 };
 
-// 3. Ambil Chapter (High Limit & Publish Date)
+// 3. Ambil Chapter
 export const getMangaChapters = async (id: string) => {
   try {
     const response = await apiClient.get(`/manga/${id}/feed`, {
       params: {
         translatedLanguage: ["en", "id"],
         order: { chapter: "desc" },
-        limit: 500, // Limit aman
+        limit: 500,
         includes: ["scanlation_group"],
       },
     });
@@ -177,7 +172,7 @@ export const getMangaChapters = async (id: string) => {
       chapter: ch.attributes.chapter,
       title: ch.attributes.title,
       language: ch.attributes.translatedLanguage,
-      publishAt: ch.attributes.publishAt, // Ambil tanggal upload
+      publishAt: ch.attributes.publishAt,
       scanGroup:
         ch.relationships.find((r: any) => r.type === "scanlation_group")
           ?.attributes?.name || "Unknown",
@@ -188,15 +183,31 @@ export const getMangaChapters = async (id: string) => {
   }
 };
 
-// 4. Cari Manga (Search)
-export const searchManga = async (query: string, tag?: string) => {
+// 4. Cari Manga
+export const searchManga = async (
+  query: string,
+  tag?: string,
+  sortBy: string = "popular",
+) => {
   try {
+    const orderMap: Record<string, any> = {
+      az: { title: "asc" },
+      za: { title: "desc" },
+      "rating-high": { rating: "desc" },
+      "rating-low": { rating: "asc" },
+      "rank-high": { followedCount: "desc" },
+      "rank-low": { followedCount: "asc" },
+      latest: { createdAt: "desc" },
+      oldest: { createdAt: "asc" },
+      popular: { followedCount: "desc" },
+    };
+
     const params: any = {
       limit: 20,
       includes: ["cover_art", "author"],
       contentRating: ["safe", "suggestive"],
       availableTranslatedLanguage: ["en", "id"],
-      order: { followedCount: "desc" },
+      order: orderMap[sortBy] || { followedCount: "desc" },
     };
 
     if (query) params.title = query;
@@ -205,7 +216,6 @@ export const searchManga = async (query: string, tag?: string) => {
     const response = await apiClient.get("/manga", { params });
     const mangaRaw = response.data.data || [];
 
-    // --- LOGIC TAMBAHAN: AMBIL LAST CHAPTER ---
     const latestChapterIds = mangaRaw
       .map((m: any) => m.attributes.latestUploadedChapter)
       .filter((id: string) => id);
@@ -224,7 +234,6 @@ export const searchManga = async (query: string, tag?: string) => {
         console.error("Gagal fetch chapter detail di search:", e);
       }
     }
-    // ------------------------------------------
 
     return mangaRaw
       .map((manga: any) => {
@@ -236,8 +245,6 @@ export const searchManga = async (query: string, tag?: string) => {
         const author =
           manga.relationships.find((rel: any) => rel.type === "author")
             ?.attributes?.name || "Unknown";
-
-        // Ambil Last Chapter dari Map
         const latestId = manga.attributes.latestUploadedChapter;
         const lastCh = chapterNumMap[latestId] || "N/A";
 
@@ -245,13 +252,13 @@ export const searchManga = async (query: string, tag?: string) => {
           id: manga.id,
           title: title,
           author: author,
-          cover: coverFile ? getCoverUrl(manga.id, coverFile) : null, // Filter null cover nanti
+          cover: coverFile ? getCoverUrl(manga.id, coverFile) : null,
           status: manga.attributes.status,
-          lastChapter: lastCh, // Data baru
+          lastChapter: lastCh,
           rating: "Safe",
         };
       })
-      .filter((m: any) => m.cover !== null); // Filter manga tanpa cover
+      .filter((m: any) => m.cover !== null);
   } catch (error) {
     console.error("Error search:", error);
     return [];

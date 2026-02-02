@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-// Kita pakai font 'Outfit' biar kerasa modern & clean
 import { Outfit } from "next/font/google";
 import "./globals.css";
+import { LibraryProvider } from "@/context/LibraryContext";
 
 const outfit = Outfit({ subsets: ["latin"] });
 
@@ -17,7 +17,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${outfit.className} antialiased`}>{children}</body>
+      <body className={`${outfit.className} antialiased bg-[#09090b]`}>
+        <LibraryProvider>{children}</LibraryProvider>
+      </body>
     </html>
   );
 }

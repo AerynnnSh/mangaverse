@@ -2,26 +2,24 @@ import { getPopularManga } from "@/lib/api";
 import Image from "next/image";
 import Link from "next/link";
 import NavbarSearch from "@/components/NavbarSearch";
-import {
-  Bell,
-  Sparkles,
-  Flame,
-  Clock,
-  ArrowRight,
-  Hash,
-  MessageCircle,
-} from "lucide-react";
+import NotificationDropdown from "@/components/NotificationDropdown"; // Import komponen baru
+import { Flame, Clock, Hash, MessageCircle, BookMarked } from "lucide-react";
 import MangaGrid from "@/components/MangaGrid";
+import HeroSlider from "@/components/HeroSlider";
 
 export default async function Home() {
   const popularManga = await getPopularManga();
 
-  // Safety Check: Pastikan array tidak kosong sebelum akses index [0]
-  const featuredManga = popularManga.length > 0 ? popularManga[0] : null;
-  const trendingManga = popularManga.slice(1, 4);
-  const initialGridData = popularManga.slice(4);
+  // Data for Hero Slider (Rank #1 - #5)
+  const featuredSlides = popularManga.slice(0, 5);
 
-  // Mapping ID Genre (UUID dari MangaDex)
+  // Data for Top Charts (Rank #6 - #8)
+  const trendingManga = popularManga.slice(5, 8);
+
+  // Data for Latest Updates Grid (Starting from rank #9)
+  const initialGridData = popularManga.slice(8);
+
+  // Mapping ID Genre (UUIDs from MangaDex)
   const genres = [
     { name: "Action", id: "391b0423-d847-456f-aff0-8b0cfc03066b" },
     { name: "Adventure", id: "87cc87cd-a395-47af-b27a-93258283bbc6" },
@@ -38,7 +36,7 @@ export default async function Home() {
   ];
 
   return (
-    <div className="min-h-screen selection:bg-indigo-500/30">
+    <div className="min-h-screen selection:bg-indigo-500/30 bg-[#09090b]">
       {/* --- NAVBAR --- */}
       <nav className="fixed top-0 inset-x-0 z-50 h-20 flex items-center transition-all duration-300 bg-gradient-to-b from-black/80 to-transparent">
         <div className="container mx-auto px-6 flex items-center justify-between gap-6">
@@ -53,75 +51,44 @@ export default async function Home() {
 
           <NavbarSearch />
 
-          <div className="flex items-center gap-5">
-            <button className="text-gray-300 hover:text-white transition drop-shadow-md">
-              <Bell className="w-6 h-6" />
-            </button>
-            <div className="w-9 h-9 rounded-full bg-gray-700 border border-gray-500"></div>
+          <div className="flex items-center gap-6">
+            {/* LIBRARY LINK */}
+            <Link
+              href="/library"
+              className="hidden md:flex items-center gap-2 text-gray-300 hover:text-white transition group"
+            >
+              <div className="relative">
+                <BookMarked
+                  size={22}
+                  className="group-hover:scale-110 transition"
+                />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full border border-[#09090b]"></span>
+              </div>
+              <span className="text-sm font-bold tracking-wide uppercase">
+                Library
+              </span>
+            </Link>
+
+            {/* NOTIFICATION DROPDOWN (MAL & System Updates) */}
+            <NotificationDropdown />
+
+            {/* USER PROFILE */}
+            <div className="w-9 h-9 rounded-full bg-gray-700 border border-gray-500 overflow-hidden">
+              <div className="w-full h-full bg-indigo-500/20 flex items-center justify-center text-[10px] font-bold text-indigo-400">
+                USER
+              </div>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* --- HERO SECTION --- */}
-      {featuredManga ? (
-        <div className="relative min-h-[700px] flex items-center pt-20 overflow-hidden">
-          {/* Background Image */}
-          <div className="absolute inset-0 z-0 bg-slate-900">
-            <Image
-              src={featuredManga.cover}
-              alt="Hero Background"
-              fill
-              className="object-cover opacity-70 blur-md scale-105"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 via-40% to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#09090b]/90 via-[#09090b]/40 to-transparent" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#09090b_120%)]" />
-          </div>
-
-          <div className="container mx-auto px-6 relative z-10 grid md:grid-cols-2 gap-8 items-center mt-10">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold backdrop-blur-md shadow-lg">
-                <Sparkles className="w-3 h-3 text-yellow-400" /> #1 Most Popular
-              </div>
-              <h1 className="text-5xl md:text-7xl font-extrabold text-white leading-tight tracking-tight drop-shadow-2xl line-clamp-3">
-                {featuredManga.title}
-              </h1>
-              <p className="text-gray-200 text-lg line-clamp-3 leading-relaxed max-w-xl drop-shadow-md font-medium">
-                Experience the epic journey that has captivated millions. Dive
-                into a world of adventure, mystery, and action right now.
-              </p>
-              <div className="flex gap-4 pt-4">
-                <Link
-                  href={`/manga/${featuredManga.id}`}
-                  className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-600/40 flex items-center gap-2 transform hover:scale-105 duration-200"
-                >
-                  Start Reading <ArrowRight className="w-5 h-5" />
-                </Link>
-                <button className="px-8 py-4 bg-white/10 border border-white/20 text-white rounded-xl font-semibold hover:bg-white/20 transition backdrop-blur-md">
-                  + Add to List
-                </button>
-              </div>
-            </div>
-
-            <div className="hidden md:flex justify-end perspective-1000 pr-6">
-              <div className="relative w-[320px] aspect-[2/3] rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/20 rotate-y-6 hover:rotate-0 transition duration-700 ease-out group bg-slate-800">
-                <Image
-                  src={featuredManga.cover}
-                  alt="Cover"
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-50 pointer-events-none" />
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* --- HERO SECTION (SLIDER 1-5) --- */}
+      {featuredSlides.length > 0 ? (
+        <HeroSlider slides={featuredSlides} />
       ) : (
-        // Fallback kalau data belum siap / kosong
-        <div className="min-h-[700px] flex items-center justify-center bg-[#09090b]">
+        <div className="min-h-[600px] flex items-center justify-center bg-[#09090b]">
           <div className="text-slate-500 animate-pulse">
-            Loading manga data...
+            Loading popular manga...
           </div>
         </div>
       )}
@@ -129,6 +96,7 @@ export default async function Home() {
       {/* --- CONTENT SECTION --- */}
       <div className="container mx-auto px-6 py-12 relative z-10">
         <div className="flex flex-col lg:flex-row gap-16">
+          {/* Main Content: Latest Updates */}
           <div className="flex-1">
             <div className="flex items-end justify-between mb-8">
               <div>
@@ -143,8 +111,9 @@ export default async function Home() {
             <MangaGrid initialData={initialGridData} />
           </div>
 
+          {/* Sidebar Section */}
           <div className="w-full lg:w-[350px] flex-shrink-0 space-y-10">
-            {/* Top Charts */}
+            {/* Top Charts (#6 - #8) */}
             <div>
               <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                 <Flame className="w-5 h-5 text-orange-500" /> Top Charts
@@ -160,13 +129,13 @@ export default async function Home() {
                       <span
                         className={`absolute -top-2 -left-2 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold border-2 border-[#09090b] z-10 ${
                           index === 0
-                            ? "bg-yellow-400 text-black"
+                            ? "bg-slate-400 text-black"
                             : index === 1
-                              ? "bg-gray-300 text-black"
-                              : "bg-orange-700 text-white"
+                              ? "bg-slate-500 text-white"
+                              : "bg-slate-700 text-white"
                         }`}
                       >
-                        {index + 1}
+                        {index + 6}
                       </span>
                       <div className="w-full h-full rounded-lg overflow-hidden relative bg-slate-800">
                         <Image
@@ -182,7 +151,7 @@ export default async function Home() {
                         {manga.title}
                       </h4>
                       <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                        <span className="text-indigo-400">Popular</span>
+                        <span className="text-indigo-400">Trending</span>
                         <span>•</span>
                         <span className="capitalize">{manga.status}</span>
                       </div>
@@ -201,7 +170,6 @@ export default async function Home() {
                 {genres.map((genre) => (
                   <Link
                     key={genre.id}
-                    // Mengirim ID genre dan Nama genre ke halaman search
                     href={`/search?genre=${genre.id}&genreName=${encodeURIComponent(genre.name)}`}
                     className="px-4 py-2 rounded-lg bg-white/5 border border-white/5 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white text-gray-400 text-sm font-medium transition duration-300 cursor-pointer block"
                   >
@@ -211,7 +179,7 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Community */}
+            {/* Community Banner */}
             <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-900/50 to-purple-900/50 border border-indigo-500/20 relative overflow-hidden group cursor-pointer">
               <div className="relative z-10">
                 <h4 className="text-white font-bold text-lg mb-1 flex items-center gap-2">

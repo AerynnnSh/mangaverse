@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { enUS } from "date-fns/locale";
-// 👇 Import Component Actions
 import MangaActions from "@/components/MangaActions";
 
 import {
@@ -46,7 +45,7 @@ export default async function MangaDetail({
 
   return (
     <div className="min-h-screen bg-[#0B1120] text-slate-200 pb-20 font-sans">
-      {/* ... Banner & Sidebar (Kode sama persis) ... */}
+      {/* BANNER */}
       <div className="relative h-[350px] overflow-hidden">
         <div className="absolute inset-0">
           <Image
@@ -64,7 +63,6 @@ export default async function MangaDetail({
         <div className="flex flex-col lg:flex-row gap-10">
           {/* SIDEBAR */}
           <div className="w-full lg:w-[280px] flex-shrink-0 space-y-6">
-            {/* ... Cover, Tracking Widget, Info ... */}
             <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden shadow-2xl border-4 border-[#1e293b] group">
               <Image
                 src={manga.cover}
@@ -80,10 +78,8 @@ export default async function MangaDetail({
                 </span>
               </div>
             </div>
-            {/* ... (Tracking & Info Code from previous step) ... */}
-            {/* Saya skip biar tidak kepanjangan, pakai kode tracking widget sebelumnya */}
+
             <div className="bg-[#1e293b] rounded-xl p-5 border border-slate-700 shadow-lg">
-              {/* ... Isi Tracking Widget ... */}
               <div className="flex items-center justify-between mb-4 border-b border-slate-700 pb-3">
                 <h3 className="font-bold text-white">My Tracking</h3>
                 <span className="bg-[#2e51a2] text-white text-[10px] font-bold px-2 py-0.5 rounded">
@@ -134,6 +130,7 @@ export default async function MangaDetail({
                 </button>
               </div>
             </div>
+
             <div className="bg-[#1e293b]/50 rounded-xl p-4 border border-slate-700/50 text-sm space-y-3">
               <div className="flex justify-between">
                 <span className="text-slate-400">Format</span>
@@ -158,7 +155,6 @@ export default async function MangaDetail({
 
           {/* MAIN CONTENT */}
           <div className="flex-1 min-w-0 pt-2 lg:pt-10">
-            {/* ... Judul & Deskripsi (Kode sama) ... */}
             <div className="mb-6">
               <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-2">
                 {manga.title}
@@ -186,14 +182,16 @@ export default async function MangaDetail({
               </div>
             </div>
 
+            {/* GENRE TAGS DINAMIS SEBAGAI LINK */}
             <div className="flex flex-wrap gap-2 mb-8">
-              {manga.tags.map((tag: string) => (
-                <span
-                  key={tag}
-                  className="px-3 py-1 rounded bg-[#1e293b] border border-slate-700 text-blue-300 text-xs font-bold uppercase tracking-wide hover:bg-slate-700 transition cursor-default"
+              {manga.tags.map((tag: { id: string; name: string }) => (
+                <Link
+                  key={tag.id}
+                  href={`/search?genre=${tag.id}&genreName=${encodeURIComponent(tag.name)}`}
+                  className="px-3 py-1 rounded bg-[#1e293b] border border-slate-700 text-blue-300 text-xs font-bold uppercase tracking-wide hover:bg-indigo-600 hover:border-indigo-500 hover:text-white transition duration-300"
                 >
-                  {tag}
-                </span>
+                  {tag.name}
+                </Link>
               ))}
             </div>
 
@@ -203,7 +201,6 @@ export default async function MangaDetail({
               </p>
             </div>
 
-            {/* ACTION BUTTONS */}
             <div className="flex flex-wrap gap-4 mb-12">
               {firstChapterId ? (
                 <Link
@@ -220,8 +217,6 @@ export default async function MangaDetail({
                   No Chapters Available
                 </button>
               )}
-
-              {/* 👇 GANTI TOMBOL STATIS DENGAN INI */}
               <MangaActions
                 manga={{
                   id: manga.id,
@@ -232,7 +227,6 @@ export default async function MangaDetail({
               />
             </div>
 
-            {/* ... Chapter List (Kode sama) ... */}
             <div className="bg-[#111827] rounded-xl border border-slate-800 overflow-hidden">
               <div className="p-4 sm:p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#161f32]">
                 <div className="flex items-center gap-3">

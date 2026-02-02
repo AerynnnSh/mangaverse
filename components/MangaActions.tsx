@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Bookmark, Share2, Check, Copy } from "lucide-react";
+import { useState } from "react";
+import { Bookmark, Share2, Check } from "lucide-react";
+import { useLibrary } from "@/context/LibraryContext";
 
 interface MangaActionsProps {
   manga: {
@@ -13,81 +14,60 @@ interface MangaActionsProps {
 }
 
 export default function MangaActions({ manga }: MangaActionsProps) {
-  const [isSaved, setIsSaved] = useState(false);
+  const { toggleLibrary, isInLibrary } = useLibrary();
   const [isCopied, setIsCopied] = useState(false);
 
-  // 1. Cek LocalStorage saat pertama load
-  useEffect(() => {
-    const library = JSON.parse(localStorage.getItem("manga_library") || "[]");
-    const exists = library.some((item: any) => item.id === manga.id);
-    setIsSaved(exists);
-  }, [manga.id]);
+  const isSaved = isInLibrary(manga.id);
 
-  // 2. Logic Add/Remove Library
-  const toggleLibrary = () => {
-    const library = JSON.parse(localStorage.getItem("manga_library") || "[]");
-
-    if (isSaved) {
-      // Remove
-      const newLibrary = library.filter((item: any) => item.id !== manga.id);
-      localStorage.setItem("manga_library", JSON.stringify(newLibrary));
-      setIsSaved(false);
-    } else {
-      // Add
-      library.push(manga);
-      localStorage.setItem("manga_library", JSON.stringify(library));
-      setIsSaved(true);
-    }
-  };
-
-  // 3. Logic Share
   const handleShare = async () => {
     const url = window.location.href;
-
-    // Jika di HP, pakai Native Share
     if (navigator.share) {
       try {
         await navigator.share({
           title: manga.title,
-          text: `Read ${manga.title} on MangaVerse!`,
           url: url,
         });
       } catch (err) {
         console.log("Share cancelled");
       }
     } else {
-      // Jika di PC, Copy to Clipboard
       navigator.clipboard.writeText(url);
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000); // Reset icon setelah 2 detik
+      setTimeout(() => setIsCopied(false), 2000);
     }
   };
 
   return (
-    <>
+    <div className="flex gap-3">
       <button
-        onClick={toggleLibrary}
-        className={`px-6 py-3.5 rounded-lg font-bold flex items-center gap-2 transition border ${
+        onClick={() => toggleLibrary(manga)}
+        className={`px-8 py-4 rounded-2xl font-bold flex items-center gap-2 transition-all duration-300 border ${
           isSaved
-            ? "bg-indigo-600 border-indigo-500 text-white"
-            : "bg-[#1e293b] hover:bg-slate-700 text-white border-slate-600"
+            ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20"
+            : "bg-white/5 hover:bg-white/10 text-white border-white/10 backdrop-blur-md"
         }`}
       >
-        {isSaved ? <Check size={20} /> : <Bookmark size={20} />}
-        {isSaved ? "Saved" : "Add to Library"}
+        {isSaved ? (
+          <Check size={20} className="animate-in zoom-in duration-300" />
+        ) : (
+          <Bookmark size={20} />
+        )}
+        {isSaved ? "Saved to Library" : "Add to Library"}
       </button>
 
       <button
         onClick={handleShare}
-        className="px-4 py-3.5 bg-[#1e293b] hover:bg-slate-700 text-white border border-slate-600 rounded-lg transition flex items-center justify-center min-w-[3.5rem]"
-        title="Share"
+        className="px-5 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl transition-all backdrop-blur-md flex items-center justify-center"
       >
         {isCopied ? (
-          <Check size={20} className="text-emerald-400" />
+          <Check
+            size={20}
+            className="text-emerald-400 animate-in zoom-in duration-300"
+          />
         ) : (
           <Share2 size={20} />
         )}
       </button>
-    </>
+    </div>
   );
 }
