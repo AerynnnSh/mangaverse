@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import { LibraryProvider } from "@/context/LibraryContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 const outfit = Outfit({ subsets: ["latin"] });
 
@@ -18,7 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${outfit.className} antialiased bg-[#09090b]`}>
-        <LibraryProvider>{children}</LibraryProvider>
+        {/* AuthProvider HARUS di paling luar agar Navbar bisa akses datanya */}
+        <AuthProvider>
+          <LibraryProvider>{children}</LibraryProvider>
+        </AuthProvider>
       </body>
     </html>
   );
